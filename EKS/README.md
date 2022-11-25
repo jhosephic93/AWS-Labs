@@ -45,6 +45,6 @@ $ eksctl create iamidentitymapping --cluster myk8scluster --region=us-east-1 --a
 $ kubectl describe configmap aws-auth -n kube-system #Desde BastionHost
 ```
 
-- Video creacion mediante EKSCTL -> https://www.youtube.com/watch?v=iywp1IbQpVY
-- Video creacion meidante Consola con Fargate -> 
+- Video creacion mediante EKSCTL -> <https://www.youtube.com/watch?v=iywp1IbQpVY>
+- Video creacion meidante Consola con Fargate -> <https://www.youtube.com/watch?v=Yjv6KL4Fh4k>
 - More info -> <https://eksctl.io/usage/dry-run/>
