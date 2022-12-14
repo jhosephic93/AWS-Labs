@@ -21,7 +21,7 @@
 1. Desplegar desde Local
 
 ```console
-$ eksctl create cluster -f example-eks.yaml --profile jhoseph
+$ eksctl create cluster -f cluster-eks.yaml --profile jhoseph
 ```
 
 2. Crear Bastion Host con IAM Role y siguientes Policys.
