@@ -1,0 +1,28 @@
+{
+  "metrics": {
+    "namespace": "EC2 Name Server Test",
+    "append_dimensions": {
+      "InstanceId": "${aws:InstanceId}"
+    },
+    "metrics_collected": {
+      "mem": {
+        "measurement": [
+          "mem_used",
+          "mem_used_percent",
+          "mem_total"
+        ]
+      },
+      "disk": {
+        "resources": [
+          "/"
+        ],
+        "measurement": [
+          "disk_used",
+          "disk_used_percent",
+          "disk_total"
+        ],
+        "drop_device": true
+      }
+    }
+  }
+}

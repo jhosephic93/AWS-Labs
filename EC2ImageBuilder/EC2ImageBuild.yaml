@@ -1,0 +1,217 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: > 
+  "Sample solution to create a new launch template version with a new AMI created by EC2  
+  Image Builder and trigger an Auto Scaling group instance refresh"
+Metadata:
+  License:
+    Description: >
+      Copyright (c) 2023 Michaelt J. Inga Cahuana
+
+      Permission is hereby granted, free of charge, to any person obtaining a copy of this
+      software and associated documentation files (the "Software"), to deal in the Software
+      without restriction, including without limitation the rights to use, copy, modify,
+      merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+      permit persons to whom the Software is furnished to do so.
+
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+      - Label:
+          default: Image Recipe
+        Parameters:
+          - ImageRecipeVersion
+          - AmazonLinux2LatestAmiId
+      - Label:
+          default: Infrastructure Configurations
+        Parameters:
+          - SubnetForImageBuilder
+          - SecurityGroup
+          - BuildInstanceType
+      - Label:
+          default: Distribution Settings
+        Parameters:
+          - LaunchTemplateID
+Parameters:
+  ImageRecipeVersion:
+    Type: String
+    Default: "1.0.0"
+    Description: "ID from Launch Template"
+  AmazonLinux2LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+  LaunchTemplateID:
+    Type: String
+    Default: "lt-"
+    Description: "ID from Launch Template"
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+    Default: ""
+    Description: "Required the ID of the SecurtyGroup"
+  SubnetForImageBuilder:
+    Type: AWS::EC2::Subnet::Id
+    Default: ""
+    Description: "Required ID of the Subnet"
+  BuildInstanceType:
+    Type: String
+    Default: "t3.micro"
+    AllowedValues:
+      - t1.micro
+      - t2.2xlarge
+      - t2.large
+      - t2.medium
+      - t2.micro
+      - t2.nano
+      - t2.small
+      - t2.xlarge
+      - t3.2xlarge
+      - t3.large
+      - t3.medium
+      - t3.micro
+      - t3.nano
+      - t3.small
+      - t3.xlarge
+      - t3a.2xlarge
+      - t3a.large
+      - t3a.medium
+      - t3a.micro
+      - t3a.nano
+      - t3a.small
+      - t3a.xlarge
+      - t4g.2xlarge
+      - t4g.large
+      - t4g.medium
+      - t4g.micro
+      - t4g.nano
+      - t4g.small
+      - t4g.xlarge
+    Description: "Image Builder instance type"
+Resources:
+# EC2 IMAGE RECIPE
+  EC2ImageBuilderRecipe:
+    Type: AWS::ImageBuilder::ImageRecipe
+    Properties:
+      Name: EC2ImageBuilderRecipe
+      Version: !Ref ImageRecipeVersion
+      Description: This recipe updates the system and installs Docker CE
+      ParentImage: !Ref AmazonLinux2LatestAmiId
+      Components:
+        - ComponentArn: !Sub "arn:aws:imagebuilder:${AWS::Region}:aws:component/update-linux/x.x.x"
+        - ComponentArn: !Sub "arn:aws:imagebuilder:${AWS::Region}:aws:component/reboot-linux/x.x.x"
+        - ComponentArn: !Sub "arn:aws:imagebuilder:us-east-1:aws:component/amazon-cloudwatch-agent-linux/x.x.x"
+        - ComponentArn: !Ref ComponentAllParameters
+# EC2 IMAGE BUILDER COMPONENTE
+  ComponentAllParameters:
+    Type: 'AWS::ImageBuilder::Component'
+    Properties:
+      Name: 'ComponentAmazonLinux2'
+      Platform: 'Linux'
+      Version: '1.0.0'
+      Description: 'Custom Component'
+      SupportedOsVersions: 
+        - 'Amazon Linux 2'
+      # Require one of 'Data' or 'Uri' for Component template
+      Data: |
+        name: imageBuilderDemo-apacheWebServer
+        description: 'This Image Builder component will install Apache web-server and configure the index.html file with a simple message'
+        schemaVersion: 1.0
+        phases:
+          - name: build
+            steps:
+              - name: DownloadScript
+                action: S3Download
+                onFailure: Abort
+                maxAttempts: 3
+                inputs:
+                  - source: s3://bucket-michaelt-test/configureEC2.sh
+                    destination: /configureEC2.sh
+              - name: RunScript
+                action: ExecuteBash
+                onFailure: Abort
+                maxAttempts: 3
+                inputs:
+                  commands:
+                    - 'chmod +x {{ build.DownloadScript.inputs[0].destination }}'
+                    - 'bash {{ build.DownloadScript.inputs[0].destination }}'
+              - name: InstanceCleanUp
+                action: DeleteFile
+                onFailure: Abort
+                maxAttempts: 3
+                inputs:
+                  - path: '{{ build.DownloadScript.inputs[0].destination }}'
+              - name: DownloadFileCloudWatchAgent
+                action: S3Download
+                onFailure: Abort
+                maxAttempts: 3
+                inputs:
+                  - source: s3://bucket-michaelt-test/amazon-cloudwatch-agent.json
+                    destination: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+              - name: RunCloudWatchMetrics
+                action: ExecuteBash
+                onFailure: Abort
+                maxAttempts: 3
+                inputs:
+                  commands:
+                    - 'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s'
+# EC2 IMAGE PIPELINE
+  EC2ImageBuilderPipeline:
+    Type: AWS::ImageBuilder::ImagePipeline
+    Properties:
+      Name: Amazon2WithDockerPipeline
+      ImageRecipeArn: !Ref EC2ImageBuilderRecipe
+      InfrastructureConfigurationArn: !Ref EC2ImageBuilderInfrastructureConfiguration
+      DistributionConfigurationArn: !Ref EC2ImageBuilderDistributionConfiguration
+# INFRAESTRUCTURA CONFIGURATION
+  EC2ImageBuilderInfrastructureConfiguration:
+    Type: AWS::ImageBuilder::InfrastructureConfiguration
+    Properties: 
+      Name: InstanceConfigurationForEC2ImageBuilder
+      InstanceTypes: 
+        - !Ref BuildInstanceType
+      InstanceProfileName: !Ref EC2ImageBuilderIAMInstanceProfile
+      SubnetId: !Ref SubnetForImageBuilder
+      SecurityGroupIds: 
+        - !Ref SecurityGroup
+      TerminateInstanceOnFailure: true
+# DISTRIBUTION SETTINGS
+  EC2ImageBuilderDistributionConfiguration:
+    Type: AWS::ImageBuilder::DistributionConfiguration
+    Properties:
+      Name: DistributionConfigurationForEC2ImageBuilder
+      Distributions:
+      - AmiDistributionConfiguration:
+          Name: Amazon2WithDockerAmi - {{ imagebuilder:buildDate }}
+          LaunchPermissionConfiguration:
+            UserIds:
+            - !Sub ${AWS::AccountId}
+        Region: !Sub ${AWS::Region}
+        LaunchTemplateConfigurations:
+          - LaunchTemplateId: !Ref LaunchTemplateID
+            AccountId: !Sub ${AWS::AccountId}
+            SetDefaultVersion: true
+# IAM ROLE FOR EC2 IMAGE BUILDER
+  EC2ImageBuilderIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: IAMRoleForEC2ImageBuilder
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action: 
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/EC2InstanceProfileForImageBuilder
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/EC2InstanceProfileForImageBuilderECRContainerBuilds
+  EC2ImageBuilderIAMInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2ImageBuilderIAMRole
+Outputs:
+  EC2ImageBuilderPipeline:
+    Description: Sample EC2 Image Builder Pipeline 
+    Value: !Ref EC2ImageBuilderPipeline
