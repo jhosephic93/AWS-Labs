@@ -25,8 +25,8 @@ $ sudo su
 Link de video que abarca los siguientes puntos. -> <https://youtu.be/ApDSInHEaQ4>
 
 - SystemsManager
-    - RunCommand
-    - PatchManager
-    - StateManager
-    - FleetManager
-    - SessionManager
+  - RunCommand
+  - PatchManager
+  - StateManager
+  - FleetManager
+  - SessionManager
