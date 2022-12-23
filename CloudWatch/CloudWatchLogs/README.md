@@ -1,4 +1,4 @@
-# Apache server logs with Amazon CloudWatch Logs Insights
+# Apache server logs with Amazon CloudWatch Logs
 
 ## Pre-requisites
 
