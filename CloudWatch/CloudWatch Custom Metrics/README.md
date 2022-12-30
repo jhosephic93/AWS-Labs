@@ -1,5 +1,12 @@
 # CLOUDWATCH CUSTOM METRICS
 
+## Pre-requisites
+
+- Create IAMRole with Policys and attach to Server EC2 Instance.
+
+  - CloudWatchAgentServerPolicy
+
+
 1. Instalar CloudWatch-Agent | AMAZON LINUX2
 
 ```console
