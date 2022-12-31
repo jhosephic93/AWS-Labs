@@ -14,7 +14,7 @@ Link -> <https://docs.aws.amazon.com/es_es/efs/latest/ug/installing-amazon-efs-u
 
 ***
 
-## 1. MONTAR EFS A EC2 CON UBUNTU
+## 1. MONTAR EFS EN EC2 CON UBUNTU
 
 1. Conectarse al EC2 creada.
 
@@ -34,7 +34,7 @@ $ sudo su
 # df -T
 ```
 
-## 2. MONTAR LA EFS A LA EC2 CON AMAZON LINUX
+## 2. MONTAR EFS EN SERVER AMAZON LINUX2
 
 1. Conectarse al EC2 creada.
 
@@ -48,7 +48,7 @@ $ sudo su
 # df -T
 ```
 
-## 3. DESMONTAR EFS A EC2
+## 3. DESMONTAR EFS EN EC2
 
 ```console
 # cd
