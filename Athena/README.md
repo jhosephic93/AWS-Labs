@@ -10,4 +10,6 @@
   - Ad-hoc analytics on big data
   - Redshift cost reduction
 
+![image](https://user-images.githubusercontent.com/73767623/210923774-b94b19ff-314b-4bec-85ab-04f52d32adcb.png)
+
 Video -> <https://youtu.be/3Uzoiiu3OLo>
